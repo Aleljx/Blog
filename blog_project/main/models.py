@@ -10,9 +10,8 @@ class Category(models.Model):
         verbose_name = "Категорія"
         verbose_name_plural = "Категорії"
 
-        def __str__(self):
-            return self.name
-
+    def __str__(self):
+        return self.name
 # Теги
 class Tag(models.Model):
     name = models.CharField(max_length=50, verbose_name="Тег")
@@ -76,3 +75,11 @@ class Announcement(models.Model):
     class Meta:
         verbose_name = "Оголошення"
         verbose_name_plural = "Оголошення"
+
+class Grade(models.Model):
+    stars = models.IntegerField(choices=[(i, i) for i in range(1, 6)]) # від 1 до 5
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='grades')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('article', 'user') # Один користувач — одна оцінка для статті

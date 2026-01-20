@@ -1,0 +1,12 @@
+{% extends 'main/base.html' %}
+{% block content %}
+    <div class="alert alert-danger mt-4">
+        <h2>Ви впевнені?</h2>
+        <p>Ви дійсно хочете видалити статтю "<strong>{{ article.title }}</strong>"? Цю дію неможливо скасувати.</p>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Так, видалити</button>
+            <a href="{% url 'article_detail' article.pk %}" class="btn btn-secondary">Скасувати</a>
+        </form>
+    </div>
+{% endblock %}

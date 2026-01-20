@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Мій Блог{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Системні змінні для тем */
+        :root { --bg-color: #f8f8fa; --card-bg: #ffffff; --text-color: #000000; --accent-color: #0d6efd; --nav-bg: #212529; }
+
+        [data-theme="dark"] {
+            --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #e0e0e0; --accent-color: #3d8bfd;
+        }
+
+        [data-theme="hacker"] {
+            --bg-color: #000000; --card-bg: #000000; --text-color: #00ff41; --accent-color: #00ff41;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); transition: 0.3s; min-height: 100vh; }
+
+        /* Глобальні налаштування для хакерської теми */
+        [data-theme="hacker"] * { border-color: var(--accent-color) !important; }
+        [data-theme="hacker"] .nav-link, [data-theme="hacker"] .text-muted, [data-theme="hacker"] h1, [data-theme="hacker"] h2, [data-theme="hacker"] h3, [data-theme="hacker"] h4, [data-theme="hacker"] h5, [data-theme="hacker"] h6, [data-theme="hacker"] p {
+            color: var(--text-color) !important;
+        }
+
+        /* Виправлення фонів у списках та картках */
+        .sidebar, .card, .offcanvas, .list-group-item {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+        }
+
+        /* Стилізація кнопок у хакерському режимі */
+        [data-theme="hacker"] .btn-outline-warning, [data-theme="hacker"] .btn-outline-danger, [data-theme="hacker"] .btn-outline-primary {
+            color: var(--text-color) !important;
+            border-color: var(--text-color) !important;
+        }
+        [data-theme="hacker"] .btn-primary, [data-theme="hacker"] .btn-success {
+            background-color: transparent !important;
+            color: var(--text-color) !important;
+            border: 1px solid var(--text-color) !important;
+        }
+
+        .article-card { margin-bottom: 20px; transition: 0.3s; }
+        .article-card:hover { transform: translateY(-5px); }
+
+        .offcanvas { width: 300px !important; }
+
+        /* Виправлення прозорості іконок */
+        .category-delete-btn { opacity: 0.7; color: inherit; text-decoration: none; }
+        .category-delete-btn:hover { opacity: 1; color: #dc3545 !important; }
+
+        /* Анімація тексту для хакера */
+        [data-theme="hacker"] .navbar-brand { text-shadow: 0 0 5px var(--text-color); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-light me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                    ☰
+                </button>
+                <a class="navbar-brand" href="{% url 'index' %}">🚀 BLOG_PROJECT</a>
+
+                <div class="dropdown ms-2">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        🎨 Тема
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow">
+                        <li><button class="dropdown-item" onclick="setTheme('light')">☀️ Світла</button></li>
+                        <li><button class="dropdown-item" onclick="setTheme('dark')">🌙 Темна</button></li>
+                        <li><button class="dropdown-item" onclick="setTheme('hacker')">📟 Хакерська</button></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="navbar-nav ms-auto align-items-center gap-2">
+                {% if user.is_authenticated %}
+                    <span class="nav-link text-light me-1 small">👋 {{ user.username }}</span>
+                    {% if user.is_staff %}
+                        <a class="btn btn-outline-secondary btn-sm text-light" href="/admin/">Адмінка</a>
+                    {% endif %}
+                    <form action="{% url 'logout' %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Вийти</button>
+                    </form>
+                {% else %}
+                    <a class="btn btn-outline-primary btn-sm text-light" href="{% url 'login' %}">Увійти</a>
+                    <a class="btn btn-primary btn-sm text-white" href="{% url 'register' %}">Реєстрація</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="offcanvas offcanvas-start shadow" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header bg-dark text-white border-bottom">
+            <h5 class="offcanvas-title">Навігація</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-0">📁 Категорії</h6>
+                    {% if user.is_staff %}
+                        <a href="{% url 'category_create' %}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 1.2rem;">+</a>
+                    {% endif %}
+                </div>
+                <div class="list-group list-group-flush border-top">
+                    <a href="{% url 'index' %}" class="list-group-item list-group-item-action border-0 py-2">Всі статті</a>
+                    {% for cat in categories %}
+                        <div class="d-flex justify-content-between align-items-center list-group-item list-group-item-action border-0 py-1">
+                            <a href="?category={{ cat.id }}" class="flex-grow-1 text-decoration-none">
+                                {{ cat.name }}
+                            </a>
+                            {% if user.is_staff %}
+                                <a href="{% url 'category_delete' cat.id %}" class="category-delete-btn" title="Видалити">
+                                    🗑️
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <hr>
+            <h6 class="fw-bold text-uppercase small text-muted">📌 Підписки</h6>
+            <p class="text-muted ps-1 small">Тут будуть ваші підписки</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+
+            <div class="col-md-4 d-none d-md-block">
+                <div class="sidebar shadow-sm border p-3 rounded">
+                    <h5 class="mb-3">🔥 Популярне</h5>
+                    <p class="small text-muted mb-4">Топ статті за рейтингом з'являться тут</p>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">📂 Категорії</h5>
+                        {% if user.is_staff %}
+                             <a href="{% url 'category_create' %}" class="btn btn-sm btn-outline-success py-0 px-2">+</a>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for cat in categories %}
+                            <div class="d-flex align-items-center bg-light border rounded px-2 py-1">
+                                <a href="?category={{ cat.id }}" class="text-dark text-decoration-none small">
+                                    {{ cat.name }}
+                                </a>
+                                {% if user.is_staff %}
+                                    <a href="{% url 'category_delete' cat.id %}" class="text-danger ms-2 small fw-bold" style="text-decoration:none;">×</a>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+    </script>
+</body>
+</html>

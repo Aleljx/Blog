@@ -1,0 +1,83 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-start mb-3">
+    <h1 class="mb-0">{{ article.title }}</h1>
+
+    {% if user.is_authenticated %}
+        {% if article.author == user or user.is_staff %}
+            <div class="btn-group shadow-sm">
+                <a href="{% url 'article_edit' article.pk %}" class="btn btn-outline-warning btn-sm">
+                    ⚙️ Редагувати
+                </a>
+                <a href="{% url 'article_delete' article.pk %}" class="btn btn-outline-danger btn-sm">
+                    🗑️ Видалити
+                </a>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+    <p class="text-muted small mb-4">
+        Автор: <strong>{{ article.author.username }}</strong> |
+        Категорія: <span class="badge bg-secondary">{{ article.category.name }}</span> |
+        Дата: {{ article.created_at|date:"d.m.Y" }}
+    </p>
+
+    <div class="article-text mb-5" style="font-size: 1.1rem; line-height: 1.6;">
+        {{ article.text|linebreaks }}
+    </div>
+
+    <hr>
+
+    <div class="rating-section mb-4">
+        <h3>Середній рейтинг:
+            {% if avg_rating %}
+                {{ avg_rating|stringformat:".1f" }} / 5 ⭐
+            {% else %}
+                0 / 5 ⭐
+            {% endif %}
+        </h3>
+
+        {% if user.is_authenticated %}
+            <form method="POST" class="d-flex align-items-center gap-2 mb-4">
+                {% csrf_token %}
+                <label for="id_stars">Ваша оцінка:</label>
+                {{ grade_form.stars }}
+                <button type="submit" name="submit_grade" class="btn btn-warning btn-sm">Оцінити</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <div class="comments-section">
+        <h4>Коментарі:</h4>
+
+        {% if user.is_authenticated %}
+            <form method="POST" class="mb-4">
+                {% csrf_token %}
+                <div class="mb-2">
+                    {{ comment_form.text }}
+                </div>
+                <button type="submit" name="submit_comment" class="btn btn-primary">Додати коментар</button>
+            </form>
+        {% else %}
+            <p class="alert alert-light"><a href="{% url 'login' %}">Увійдіть</a>, щоб залишати коментарі та оцінки.</p>
+        {% endif %}
+
+        {% for comment in comments %}
+            <div class="card mb-2 shadow-sm border-0 bg-light">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.author.username }}</strong>
+                        <small class="text-muted">{{ comment.created_at|date:"H:i, d.m.Y" }}</small>
+                    </div>
+                    <p class="mb-0 mt-2">{{ comment.text }}</p>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">Коментарів ще немає. Будьте першим!</p>
+        {% endfor %}
+    </div>
+{% endblock %}
