@@ -2,25 +2,31 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Article, Category, Comment, Grade
 from .forms import CommentForm, UserRegisterForm, GradeForm
 from django.contrib import messages
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.contrib import messages
 from .forms import CategoryForm
 
-# Головна сторінка
+
 def index(request):
-    # 1. Отримуємо ID категорії з посилання (наприклад, ?category=2)
     category_id = request.GET.get('category')
 
-    # 2. Початковий запит: тільки опубліковані статті з рейтингом
-    articles = Article.objects.filter(status='published').annotate(
+    # 1. Складна фільтрація:
+    # (Статус 'опубліковано') АБО (Автор — це ви)
+    if request.user.is_authenticated:
+        filters = Q(status='published') | Q(author=request.user)
+    else:
+        filters = Q(status='published')
+
+    # 2. Застосовуємо фільтри та рахуємо рейтинг
+    articles = Article.objects.filter(filters).annotate(
         avg_rating=Avg('grades__stars')
     )
 
-    # 3. Якщо категорія обрана в меню — фільтруємо за нею
+    # 3. Фільтрація за категорією
     if category_id:
         articles = articles.filter(category_id=category_id)
 
-    # 4. Сортуємо за датою (від нових до старих)
+    # 4. Сортування
     articles = articles.order_by('-created_at')
 
     categories = Category.objects.all()
@@ -28,7 +34,7 @@ def index(request):
     return render(request, 'main/index.html', {
         'articles': articles,
         'categories': categories,
-        'selected_category': category_id # Передаємо, щоб підсвітити обрану категорію
+        'selected_category': category_id
     })
 
 # Сторінка конкретної статті (якої зараз не вистачає)
